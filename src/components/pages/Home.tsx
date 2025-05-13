@@ -6,6 +6,7 @@ import BookItem from "../UI/atoms/BookItem";
 import Navbar from "../templates/Navbar";
 import { Link } from "react-router-dom";
 import Footer from "../templates/Footer";
+import LoadingSpinner from "../UI/atoms/LoadingSpinner";
 
 export default function Home() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -138,9 +139,9 @@ export default function Home() {
   return (
     <div className="">
       <Navbar/>
-      <div className=" p-8">
 
-   
+     
+      <div className=" p-8">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Books</h2>
       </div>
@@ -193,7 +194,7 @@ export default function Home() {
       </div>
 
       {loading ? (
-        <p>Loading books...</p>
+        <> <LoadingSpinner /></>
       ) : books.length === 0 ? (
         <p>No books found.</p>
       ) : (

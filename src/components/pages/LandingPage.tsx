@@ -7,6 +7,7 @@ import API from "../../const/api_paths";
 import type { Book } from "../../types/book";
 import BookItem from "../UI/atoms/BookItem";
 import { Link } from "react-router-dom";
+import LoadingSpinner from "../UI/atoms/LoadingSpinner";
 
 const generateSessionId = () => crypto.randomUUID();
 
@@ -90,7 +91,7 @@ export default function LandingPage() {
       <section>
         <div className=" ">
           {loading ? (
-            <p>Loading...</p>
+            <><LoadingSpinner /></>
           ) : (
             <div className=" p-5">
               <h2 className="text-2xl font-bold mb-4 text-gray-700 p-2">

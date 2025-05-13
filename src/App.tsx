@@ -7,25 +7,11 @@ import SignIn from './components/pages/SignIn';
 import AdminDashBoard from './components/pages/admin/AdminDashBoard';
 import AuthRedirect from './components/pages/AuthRedirect';
 import Home from './components/pages/Home';
-import { useDispatch } from 'react-redux';
-import type { AppDispatch } from './store';
-import axios from 'axios';
-import { useEffect } from 'react';
-import API from './const/api_paths';
 import BookRecommend from './components/pages/BookRecommend';
 import Cart from './components/pages/Cart';
 import Orders from './components/pages/Orders';
-import { setUser, clearUser } from './store/authSlice';
 
 function App() {
-const dispatch = useDispatch<AppDispatch>();
- useEffect(() => {
-    axios
-      .get(API.AUTHENTICATE, { withCredentials: true })
-      .then((res) => dispatch(setUser(res.data)))
-      .catch(() => dispatch(clearUser()));
-  }, [dispatch]);
-
   return (
     <Router>
     <div>

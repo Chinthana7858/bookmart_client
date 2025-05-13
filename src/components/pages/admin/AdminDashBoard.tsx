@@ -1,32 +1,20 @@
-import axios from "axios";
-import { useState, useEffect } from "react";
-import API from "../../../const/api_paths";
+
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CategoryManagement from "../../UI/organisms/admin/CategoryManagement";
 import BookManagement from "../../UI/organisms/admin/BookManagement";
 import OrderManagement from "../../UI/organisms/admin/OrderManagement";
 import UserManagement from "../../UI/organisms/admin/UserManagement";
 import ConfirmModal from "../../UI/molecules/modals/ConfirmModal";
+import { useAuth } from "../../../AuthContext";
 
 export default function AdminDashBoard() {
-  const [user, setUser] = useState<{ role: string } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
     const [showlogoutmodal, setShowlogoutmodal] = useState(false);
     
   const [activeTab, setActiveTab] = useState("books");
+ const { user, logout,loading } = useAuth();
+ const navigate = useNavigate();
 
-  useEffect(() => {
-    axios
-      .get(API.AUTHENTICATE, { withCredentials: true })
-      .then((res) => {
-        setUser(res.data);
-      })
-      .catch(() => {
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
-  }, []);
 
   if (loading) return <p>Loading...</p>;
 
@@ -34,14 +22,16 @@ export default function AdminDashBoard() {
     navigate("/home");
   }
 
+
+ 
   const handleLogout = async () => {
-    try {
-      await axios.post(API.LOGOUT, null, { withCredentials: true });
-      window.location.href = "/";
-    } catch (err) {
-      alert("Logout failed.");
-    }
-  };
+     try {
+       await logout();     
+        navigate("/");       
+     } catch (err) {
+       alert("Logout failed.");
+     }
+   };
 
   const renderTabContent = () => {
     switch (activeTab) {

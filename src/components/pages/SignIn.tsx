@@ -4,17 +4,18 @@ import { useState } from "react";
 import type { SignInFormData } from "../../types/user";
 import { useNavigate } from "react-router-dom";
 import AlertModal from "../UI/molecules/modals/AlertModal";
+import API from "../../const/api_paths";
+import { useAuth } from "../../AuthContext";
 
 export default function SignIn() {
+  const { setUser } = useAuth(); 
   const [form, setForm] = useState<SignInFormData>({
     email: "",
     password: "",
   });
-  const [signinsuccess, setSigninsuccess] = useState(false);
   const [signinfailed, setSigninfailed] = useState(false);
   const [signinerror, setSigninerror] = useState("");
   const [loading, setLoading] = useState(false);
-
   const navigate = useNavigate();
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -27,15 +28,19 @@ export default function SignIn() {
     setLoading(true);
     try {
       const response = await axios.post(
-        "http://localhost:8000/auth/login",
+      API.LOGIN,
         form,
         {
           withCredentials: true,
         }
       );
+         const res = await axios.get(API.AUTHENTICATE, {
+      withCredentials: true,
+    });
+     setUser(res.data);
 
       console.log("Signin successful:", response.data);
-      setSigninsuccess(true);
+      navigate("/authredirect")
     } catch (error: any) {
       console.error("Signin failed:", error);
       setSigninerror(error?.response?.data?.detail || "Something went wrong.");
@@ -43,6 +48,7 @@ export default function SignIn() {
     }finally {
     setLoading(false);
   }
+
   };
   return (
     <div className="">
@@ -76,13 +82,14 @@ export default function SignIn() {
             required
           />
 
-          <button
+         <button
             type="submit"
             className="w-full bg-primary text-white py-2 rounded hover:bg-primarydark transition cursor-pointer"
              disabled={loading}
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
+          
           <div className="text-center mt-4">
             <a
               href="/signup"
@@ -93,13 +100,6 @@ export default function SignIn() {
           </div>
         </form>
       </div>
-      <AlertModal
-        isOpen={signinsuccess}
-        title="Success"
-        message="Signin successful!"
-        onClose={() => navigate("/authredirect")}
-        type="success"
-      />
       <AlertModal
         isOpen={signinfailed}
         title="Failed"

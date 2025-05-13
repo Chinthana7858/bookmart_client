@@ -4,7 +4,7 @@ import axios from "axios";
 import API from "../../const/api_paths";
 import type { SignUpFormData } from "../../types/user";
 import AlertModal from "../UI/molecules/modals/AlertModal";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Signup() {
   const [form, setForm] = useState<SignUpFormData>({
@@ -19,11 +19,9 @@ export default function Signup() {
   const [signupfailed, setSignupfailed] = useState(false);
   const [signuperror, setSignuperror] = useState("");
   const [loading, setLoading] = useState(false);
-
   const navigate = useNavigate();
   const isValidPassword = (password: string): boolean => {
-    // At least 6 characters, 1 letter and 1 number
-    const pattern = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
+    const pattern = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
     return pattern.test(password);
   };
 
@@ -31,7 +29,7 @@ export default function Signup() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({ ...form, [name]: value });
 
     if (name === "password") {
       setPasswordError(
@@ -44,13 +42,16 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+
     if (!isValidPassword(form.password)) {
       setPasswordError(
         "Password must be at least 6 characters, include a letter and a number."
       );
+      setLoading(false);
       return;
     }
-    setLoading(true);
+
     try {
       const response = await axios.post(API.REGISTER, form, {
         withCredentials: true,
@@ -122,22 +123,25 @@ export default function Signup() {
           )}
           <button
             type="submit"
-            className="w-full bg-primary text-white py-2 rounded hover:bg-primarydark transition cursor-pointer disabled:opacity-60"
+            className={`w-full py-2 rounded transition ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-primary hover:bg-primarydark text-white cursor-pointer"
+            }`}
             disabled={loading}
           >
-            {loading ? "Signing up..." : "Sign Up"}
+            {loading ? "Signing Up" : "Sign Up"}
           </button>
-
           <div className="text-center mt-4">
             <span className="text-sm text-gray-600">
               Already have an account?{" "}
             </span>
-            <a
-              href="/signin"
+            <Link
+              to="/signin"
               className="text-primary hover:underline font-medium"
             >
               Login
-            </a>
+            </Link>
           </div>
         </form>
       </div>
