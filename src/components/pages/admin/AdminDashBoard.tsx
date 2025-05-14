@@ -1,43 +1,23 @@
-import axios from "axios";
-import { useState, useEffect } from "react";
-import API from "../../../const/api_paths";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CategoryManagement from "../../UI/organisms/admin/CategoryManagement";
 import BookManagement from "../../UI/organisms/admin/BookManagement";
 import OrderManagement from "../../UI/organisms/admin/OrderManagement";
 import UserManagement from "../../UI/organisms/admin/UserManagement";
 import ConfirmModal from "../../UI/molecules/modals/ConfirmModal";
+import { useAuth } from "../../../AuthContext";
 
 export default function AdminDashBoard() {
-  const [user, setUser] = useState<{ role: string } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-    const [showlogoutmodal, setShowlogoutmodal] = useState(false);
-    
+  const [showlogoutmodal, setShowlogoutmodal] = useState(false);
+
   const [activeTab, setActiveTab] = useState("books");
-
-  useEffect(() => {
-    axios
-      .get(API.AUTHENTICATE, { withCredentials: true })
-      .then((res) => {
-        setUser(res.data);
-      })
-      .catch(() => {
-        setUser(null);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <p>Loading...</p>;
-
-  if (!user || user.role !== "admin") {
-    navigate("/home");
-  }
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
-      await axios.post(API.LOGOUT, null, { withCredentials: true });
-      window.location.href = "/";
+      await logout();
+      navigate("/");
     } catch (err) {
       alert("Logout failed.");
     }
@@ -54,9 +34,9 @@ export default function AdminDashBoard() {
       case "categories":
         return <CategoryManagement />;
       case "orders":
-        return <OrderManagement/>;
+        return <OrderManagement />;
       case "users":
-        return <UserManagement/>;
+        return <UserManagement />;
       default:
         return <div></div>;
     }
@@ -78,8 +58,10 @@ export default function AdminDashBoard() {
           Admin Dashboard
         </h1>
         <button
-          className="text-sm text-primarydark hover:underline"
-          onClick={() =>  setShowlogoutmodal(true)}
+          onClick={() => {
+            setShowlogoutmodal(true);
+          }}
+          className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer mr-2"
         >
           Logout
         </button>
@@ -104,13 +86,13 @@ export default function AdminDashBoard() {
       </nav>
 
       <main className="p-8">{renderTabContent()}</main>
-       <ConfirmModal
-              isOpen={showlogoutmodal}
-              title="Do you want to logout?"
-              message=""
-              onConfirm={handleLogout}
-              onCancel={() => setShowlogoutmodal(false)}
-            />
+      <ConfirmModal
+        isOpen={showlogoutmodal}
+        title="Do you want to logout?"
+        message=""
+        onConfirm={handleLogout}
+        onCancel={() => setShowlogoutmodal(false)}
+      />
     </div>
   );
 }

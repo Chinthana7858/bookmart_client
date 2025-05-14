@@ -7,6 +7,7 @@ import BookDetails from "../templates/BookDetails";
 import BookItem from "../UI/atoms/BookItem";
 import Navbar from "../templates/Navbar";
 import Footer from "../templates/Footer";
+import LoadingSpinner from "../UI/atoms/LoadingSpinner";
 
 export default function BookRecommend() {
   const { id } = useParams<{ id: string }>();
@@ -59,9 +60,27 @@ export default function BookRecommend() {
 
     fetchData();
   }, [id]);
+  if (loading) {
+    return (
+      <div>
+        <Navbar />
+        <div className="flex justify-center py-10">
+          <LoadingSpinner />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
-  if (loading) return <p className="p-6">Loading...</p>;
-  if (!book) return <p className="p-6">Book not found.</p>;
+  if (!book) {
+    return (
+      <div>
+        <Navbar />
+        <p className="p-6">Book not found.</p>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="">

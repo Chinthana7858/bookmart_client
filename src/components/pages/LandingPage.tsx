@@ -6,13 +6,28 @@ import axios from "axios";
 import API from "../../const/api_paths";
 import type { Book } from "../../types/book";
 import BookItem from "../UI/atoms/BookItem";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import LoadingSpinner from "../UI/atoms/LoadingSpinner";
+import { motion } from "framer-motion";
 
 const generateSessionId = () => crypto.randomUUID();
 
 export default function LandingPage() {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.hash) {
+      setTimeout(() => {
+        const element = document.querySelector(location.hash);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 0);
+    }
+  }, [location]);
 
   useEffect(() => {
     const fetchPopularBooks = () => {
@@ -59,9 +74,19 @@ export default function LandingPage() {
             <p className="text-gray-600">Explore our current collection</p>
             <Link to={"/home"}>
               <button className="bg-primary hover:bg-primarydark text-white px-16 py-2 rounded-xl cursor-pointer">
-                <div className=" flex font-xl">
+                <div className="flex items-center gap-2 font-xl">
                   Let's start!
-                  <IoIosArrowForward size={25} />
+                  <motion.div
+                    animate={{ x: [0, 25] }}
+                    transition={{
+                      repeat: Infinity,
+                      repeatType: "loop",
+                      duration: 1,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <IoIosArrowForward size={25} />
+                  </motion.div>
                 </div>
               </button>
             </Link>
@@ -90,7 +115,9 @@ export default function LandingPage() {
       <section>
         <div className=" ">
           {loading ? (
-            <p>Loading...</p>
+            <>
+              <LoadingSpinner />
+            </>
           ) : (
             <div className=" p-5">
               <h2 className="text-2xl font-bold mb-4 text-gray-700 p-2">
@@ -120,7 +147,17 @@ export default function LandingPage() {
                 <button className="bg-primary hover:bg-primarydark text-white px-16 py-2 rounded-xl cursor-pointer mt-4">
                   <div className=" flex font-xl">
                     See more...
-                    <IoIosArrowForward size={25} />
+                    <motion.div
+                      animate={{ x: [0, 25] }}
+                      transition={{
+                        repeat: Infinity,
+                        repeatType: "loop",
+                        duration: 1,
+                        ease: "easeInOut",
+                      }}
+                    >
+                      <IoIosArrowForward size={25} />
+                    </motion.div>
                   </div>
                 </button>
               </Link>
@@ -128,14 +165,13 @@ export default function LandingPage() {
           )}
         </div>
       </section>
-      <section  id="about" className="bg-white py-16 px-6 md:px-20 text-center">
+      <section id="about" className="bg-white py-16 px-6 md:px-20 text-center">
         <h2 className="text-3xl font-bold text-primary mb-4">About Us</h2>
         <p className="text-gray-700 max-w-3xl mx-auto">
           Welcome to <span className="font-semibold">BookMart</span> — a sample
-          online bookstore created for demonstration purposes.
-          
-          . It was built as part of an assignment to showcase web
-          development, UI design, and full-stack integration skills.
+          online bookstore created for demonstration purposes. . It was built as
+          part of an assignment to showcase web development, UI design, and
+          full-stack integration skills.
           <br />
           <br />
           BookMart simulates a modern book shopping experience, complete with
@@ -143,7 +179,10 @@ export default function LandingPage() {
         </p>
       </section>
 
-      <section  id="contact" className="bg-gray-50 py-16 px-6 md:px-20 text-center">
+      <section
+        id="contact"
+        className="bg-gray-50 py-16 px-6 md:px-20 text-center"
+      >
         <h2 className="text-3xl font-bold text-primary mb-4">Contact Us</h2>
         <p className="text-gray-700 max-w-xl mx-auto mb-6">
           Have questions, suggestions, or just want to say hi? We'd love to hear

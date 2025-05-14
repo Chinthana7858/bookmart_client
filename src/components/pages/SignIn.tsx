@@ -4,16 +4,20 @@ import { useState } from "react";
 import type { SignInFormData } from "../../types/user";
 import { useNavigate } from "react-router-dom";
 import AlertModal from "../UI/molecules/modals/AlertModal";
+import API from "../../const/api_paths";
+import { useAuth } from "../../AuthContext";
+import { IoEyeOff, IoEye } from "react-icons/io5";
 
 export default function SignIn() {
+  const { setUser } = useAuth();
   const [form, setForm] = useState<SignInFormData>({
     email: "",
     password: "",
   });
-  const [signinsuccess, setSigninsuccess] = useState(false);
   const [signinfailed, setSigninfailed] = useState(false);
   const [signinerror, setSigninerror] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
   const handleChange = (
@@ -26,23 +30,23 @@ export default function SignIn() {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post(
-        "http://localhost:8000/auth/login",
-        form,
-        {
-          withCredentials: true,
-        }
-      );
+      const response = await axios.post(API.LOGIN, form, {
+        withCredentials: true,
+      });
+      const res = await axios.get(API.AUTHENTICATE, {
+        withCredentials: true,
+      });
+      setUser(res.data);
 
       console.log("Signin successful:", response.data);
-      setSigninsuccess(true);
+      navigate("/authredirect");
     } catch (error: any) {
       console.error("Signin failed:", error);
       setSigninerror(error?.response?.data?.detail || "Something went wrong.");
       setSigninfailed(true);
-    }finally {
-    setLoading(false);
-  }
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <div className="">
@@ -66,23 +70,38 @@ export default function SignIn() {
             required
           />
 
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded mb-4"
-            required
-          />
+          <div className="relative pb-4">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Password"
+              value={form.password}
+              onChange={handleChange}
+              className="w-full pr-10 border rounded focus:outline-none focus:ring-2 focus:ring-primary text-sm px-4 py-2"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-3 flex items-center text-gray-500 cursor-pointer"
+              tabIndex={-1}
+            >
+              {!showPassword ? <IoEyeOff size={18} /> : <IoEye size={18} />}
+            </button>
+          </div>
 
           <button
             type="submit"
-            className="w-full bg-primary text-white py-2 rounded hover:bg-primarydark transition cursor-pointer"
-             disabled={loading}
+            className={`w-full bg-primary text-white py-2 rounded transition  ${
+              loading
+                ? " cursor-not-allowed"
+                : "cursor-pointer hover:bg-primarydark "
+            }`}
+            disabled={loading}
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
+
           <div className="text-center mt-4">
             <a
               href="/signup"
@@ -93,13 +112,6 @@ export default function SignIn() {
           </div>
         </form>
       </div>
-      <AlertModal
-        isOpen={signinsuccess}
-        title="Success"
-        message="Signin successful!"
-        onClose={() => navigate("/authredirect")}
-        type="success"
-      />
       <AlertModal
         isOpen={signinfailed}
         title="Failed"

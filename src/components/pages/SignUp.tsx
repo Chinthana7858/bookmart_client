@@ -4,7 +4,8 @@ import axios from "axios";
 import API from "../../const/api_paths";
 import type { SignUpFormData } from "../../types/user";
 import AlertModal from "../UI/molecules/modals/AlertModal";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { IoEyeOff, IoEye } from "react-icons/io5";
 
 export default function Signup() {
   const [form, setForm] = useState<SignUpFormData>({
@@ -18,12 +19,11 @@ export default function Signup() {
   const [signupsuccess, setSignupsuccess] = useState(false);
   const [signupfailed, setSignupfailed] = useState(false);
   const [signuperror, setSignuperror] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const navigate = useNavigate();
   const isValidPassword = (password: string): boolean => {
-    // At least 6 characters, 1 letter and 1 number
-    const pattern = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/;
+    const pattern = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
     return pattern.test(password);
   };
 
@@ -31,7 +31,7 @@ export default function Signup() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm({ ...form, [name]: value });
 
     if (name === "password") {
       setPasswordError(
@@ -44,13 +44,16 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+
     if (!isValidPassword(form.password)) {
       setPasswordError(
         "Password must be at least 6 characters, include a letter and a number."
       );
+      setLoading(false);
       return;
     }
-    setLoading(true);
+
     try {
       const response = await axios.post(API.REGISTER, form, {
         withCredentials: true,
@@ -108,36 +111,49 @@ export default function Signup() {
             required
           />
 
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded mb-4"
-            required
-          />
+          <div className="relative pb-4">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Password"
+              value={form.password}
+              onChange={handleChange}
+              className="w-full pr-10 border rounded focus:outline-none focus:ring-2 focus:ring-primary text-sm px-4 py-2"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-3 flex items-center text-gray-500 cursor-pointer"
+              tabIndex={-1}
+            >
+              {!showPassword ? <IoEyeOff size={18} /> : <IoEye size={18} />}
+            </button>
+          </div>
           {passwordError && (
             <p className="text-red-500 text-sm mb-3">{passwordError}</p>
           )}
           <button
             type="submit"
-            className="w-full bg-primary text-white py-2 rounded hover:bg-primarydark transition cursor-pointer disabled:opacity-60"
+            className={`w-full bg-primary text-white py-2 rounded transition  ${
+              loading
+                ? " cursor-not-allowed"
+                : "cursor-pointer hover:bg-primarydark "
+            }`}
             disabled={loading}
           >
-            {loading ? "Signing up..." : "Sign Up"}
+            {loading ? "Signing Up" : "Sign Up"}
           </button>
-
           <div className="text-center mt-4">
             <span className="text-sm text-gray-600">
               Already have an account?{" "}
             </span>
-            <a
-              href="/signin"
+            <Link
+              to="/signin"
               className="text-primary hover:underline font-medium"
             >
               Login
-            </a>
+            </Link>
           </div>
         </form>
       </div>

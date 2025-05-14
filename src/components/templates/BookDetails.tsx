@@ -2,10 +2,9 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import API from "../../const/api_paths";
 import type { Book } from "../../types/book";
-import { useSelector } from "react-redux";
-import type { RootState } from "../../store";
 import ConfirmModal from "../UI/molecules/modals/ConfirmModal";
 import AlertModal from "../UI/molecules/modals/AlertModal";
+import { useAuth } from "../../AuthContext";
 import { useNavigate } from "react-router-dom";
 
 export default function BookDetails({
@@ -18,19 +17,19 @@ export default function BookDetails({
   categoryName,
   created_at,
 }: Book & { categoryName: string }) {
-  const user = useSelector((state: RootState) => state.auth.user);
   const [quantity, setQuantity] = useState(1);
   const [showorderconfirmmodal, setShowOrderconfirmmodal] = useState(false);
   const [orderplacedalertOpen, setOrderplacedalertOpen] = useState(false);
   const [addcartalertOpen, setAddcartalertOpen] = useState(false);
+  const [cartaddloading, setCartaddloading] = useState(false);
+  const [buyloading, setBuyloading] = useState(false);
+  const { user } = useAuth();
   const navigate = useNavigate();
-
   useEffect(() => {
     if (!id) return;
 
     const logViewActivity = async () => {
       try {
-        
         await axios.post(
           API.CREATE_ACTIVITY,
           {
@@ -81,6 +80,7 @@ export default function BookDetails({
   };
 
   const handleAddToCart = async () => {
+    setCartaddloading(true);
     try {
       await axios.post(
         API.ADD_TO_CART,
@@ -92,14 +92,17 @@ export default function BookDetails({
         { withCredentials: true }
       );
       logCartActivity();
-      
-       setAddcartalertOpen(true);
+
+      setAddcartalertOpen(true);
     } catch (err) {
-      navigate("/signin");
       console.error("Failed to add to cart", err);
+    } finally {
+      setCartaddloading(false);
     }
   };
   const handleBuyNow = async () => {
+    setBuyloading(true);
+    setShowOrderconfirmmodal(false);
     try {
       const response = await axios.post(
         API.CREATE_ORDER,
@@ -123,8 +126,10 @@ export default function BookDetails({
       setShowOrderconfirmmodal(false);
       setOrderplacedalertOpen(true);
     } catch (err) {
-      navigate("/signin");
       console.error("Failed to place order", err);
+      alert("Something went wrong while placing the order.");
+    } finally {
+      setBuyloading(false);
     }
   };
 
@@ -138,7 +143,7 @@ export default function BookDetails({
           <h2 className="text-3xl font-bold text-primary mb-3">{title}</h2>
 
           <p className="text-lg text-gray-800 font-semibold mb-2">
-            Rs. {price.toFixed(2)}
+            $. {price.toFixed(2)}
           </p>
           <p className="text-gray-700 mb-3 leading-relaxed">{description}</p>
 
@@ -176,39 +181,51 @@ export default function BookDetails({
 
           <div className="flex space-x-4">
             <button
-              onClick={handleAddToCart}
-              disabled={stock === 0}
-              className={`px-6 py-2 rounded-full font-semibold transition duration-300 ${
-                stock === 0
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-primary hover:bg-primarydark text-white cursor-pointer"
+              onClick={() => {
+                if (!user) {
+                  navigate("/signin");
+                } else {
+                  handleAddToCart();
+                }
+              }}
+              disabled={stock === 0 || cartaddloading}
+              className={`px-6 py-2 rounded-full font-semibold transition duration-300 bg-primary hover:bg-primarydark text-white  ${
+                stock === 0 || cartaddloading
+                  ? " cursor-not-allowed"
+                  : "cursor-pointer"
               }`}
             >
-              Add to Cart
+              {cartaddloading ? "Adding to Cart" : "Add to Cart"}
             </button>
 
             <button
-              onClick={() => setShowOrderconfirmmodal(true)}
-              disabled={stock === 0}
-              className={`px-6 py-2 rounded-full font-semibold transition duration-300 ${
-                stock === 0
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-primary hover:bg-primarydark text-white cursor-pointer"
+              onClick={() => {
+                if (!user) {
+                  navigate("/signin");
+                } else {
+                  setShowOrderconfirmmodal(true);
+                }
+              }}
+              disabled={stock === 0 || buyloading}
+              className={`px-6 py-2 rounded-full font-semibold transition duration-300 bg-primary hover:bg-primarydark text-white ${
+                stock === 0 || buyloading
+                  ? "cursor-not-allowed"
+                  : "cursor-pointer"
               }`}
             >
-              Buy Now
+              {buyloading ? "Processing" : "Buy Now"}
             </button>
           </div>
         </div>
       </div>
       <ConfirmModal
         isOpen={showorderconfirmmodal}
-        title="Are you want to buy this item?"
-        message="This action cannot be undone."
+        title="Confirm Purchase"
+        message="Are you want to buy these items?"
         onConfirm={handleBuyNow}
         onCancel={() => setShowOrderconfirmmodal(false)}
       />
-       <AlertModal
+      <AlertModal
         isOpen={orderplacedalertOpen}
         title="Success"
         message="Your order was placed successfully!"

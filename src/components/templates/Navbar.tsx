@@ -1,32 +1,96 @@
 import { useState } from "react";
 import { HiMenu } from "react-icons/hi";
-import { useDispatch, useSelector } from "react-redux";
-import { Link } from "react-router-dom";
-import type { RootState } from "../../store";
-import axios from "axios";
-import API from "../../const/api_paths";
+import { Link, useNavigate } from "react-router-dom";
 import { IoCartSharp } from "react-icons/io5";
 import { GrDeliver } from "react-icons/gr";
 import ConfirmModal from "../UI/molecules/modals/ConfirmModal";
-import { setUser } from "../../store/authSlice";
+import { useAuth } from "../../AuthContext";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const user = useSelector((state: RootState) => state.auth.user);
   const [showlogoutmodal, setShowlogoutmodal] = useState(false);
 
-  const dispatch = useDispatch();
-  
+  const { user, logout, loading } = useAuth();
+  const navigate = useNavigate();
+
   const handleLogout = async () => {
     try {
-      await axios.post(API.LOGOUT, null, { withCredentials: true });
-      dispatch(setUser({ id: 0, email: "", role: "", name: "" }));
-      window.location.href = "/";
+      await logout();
+      setShowlogoutmodal(false);
+      navigate("/");
     } catch (err) {
       alert("Logout failed.");
     }
   };
+  if (loading)
+    return (
+      <nav className="bg-white shadow-sm px-6 py-4">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className=" flex-col">
+              <Link to={"/"} className=" cursor-pointer">
+                <div className="w-6 h-6 bg-primary rounded-sm" />
+                <h1 className="text-lg font-bold text-gray-800">Book Mart</h1>
+              </Link>
+            </div>
+          </div>
 
+          <ul className="hidden md:flex gap-6 text-sm text-gray-700">
+            <Link to={"/"}>
+              <li className="cursor-pointer hover:text-primary">Home</li>
+            </Link>
+
+            <Link to={"/home"}>
+              <li className="cursor-pointer hover:text-primary">Books</li>
+            </Link>
+
+            <Link to="/#about">
+              <li className="cursor-pointer hover:text-primary">About us</li>
+            </Link>
+            <Link to="/#contact">
+              <li className="cursor-pointer hover:text-primary">Contact us</li>
+            </Link>
+          </ul>
+           <div>
+              <Link to={"/signin"}>
+                <button className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer mx-2">
+                  Sign in
+                </button>
+              </Link>
+              <Link to={"/signup"}>
+                <button className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer mx-2">
+                  Join us
+                </button>
+              </Link>
+            </div>
+
+          <div className="md:hidden cursor-pointer">
+            <button onClick={() => setIsOpen(!isOpen)}>
+              <HiMenu size={24} />
+            </button>
+          </div>
+        </div>
+
+        {isOpen && (
+          <div className="md:hidden mt-4 flex flex-col gap-4 text-gray-700">
+            <Link to="/" className="hover:text-primary">
+              Home
+            </Link>
+            <a href="/#about" className="hover:text-primary">
+              About us
+            </a>
+            <a href="/#books" className="hover:text-primary">
+              Books
+            </a>
+            <a href="/#contact" className="hover:text-primary">
+              Contact us
+            </a>
+            
+          </div>
+        )}
+        
+      </nav>
+    );
   return (
     <nav className="bg-white shadow-sm px-6 py-4">
       <div className="flex justify-between items-center">
@@ -48,7 +112,6 @@ export default function Navbar() {
           <Link to={"/"}>
             <li className="cursor-pointer hover:text-primary">Home</li>
           </Link>
-          
 
           <Link to={"/home"}>
             <li className="cursor-pointer hover:text-primary">Books</li>
@@ -154,7 +217,7 @@ export default function Navbar() {
                   onClick={() => {
                     setShowlogoutmodal(true);
                   }}
-                  className="text-sm text-primarydark hover:text-red-500  underline underline-offset-2"
+                  className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer mr-2"
                 >
                   Logout
                 </button>
