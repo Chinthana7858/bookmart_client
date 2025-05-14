@@ -33,9 +33,6 @@ export default function BookManagement() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    fetchPaginatedBooks();
-  }, [thispage]);
 
   useEffect(() => {
     axios
