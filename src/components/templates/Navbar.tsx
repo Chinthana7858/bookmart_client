@@ -51,6 +51,18 @@ export default function Navbar() {
               <li className="cursor-pointer hover:text-primary">Contact us</li>
             </Link>
           </ul>
+           <div>
+              <Link to={"/signin"}>
+                <button className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer mx-2">
+                  Sign in
+                </button>
+              </Link>
+              <Link to={"/signup"}>
+                <button className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer mx-2">
+                  Join us
+                </button>
+              </Link>
+            </div>
 
           <div className="md:hidden cursor-pointer">
             <button onClick={() => setIsOpen(!isOpen)}>
@@ -73,8 +85,10 @@ export default function Navbar() {
             <a href="/#contact" className="hover:text-primary">
               Contact us
             </a>
+            
           </div>
         )}
+        
       </nav>
     );
   return (
@@ -203,7 +217,7 @@ export default function Navbar() {
                   onClick={() => {
                     setShowlogoutmodal(true);
                   }}
-                  className="text-sm text-primarydark hover:text-red-500  underline underline-offset-2"
+                  className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer mr-2"
                 >
                   Logout
                 </button>

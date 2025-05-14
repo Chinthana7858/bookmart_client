@@ -5,6 +5,7 @@ import API from "../../const/api_paths";
 import type { SignUpFormData } from "../../types/user";
 import AlertModal from "../UI/molecules/modals/AlertModal";
 import { Link, useNavigate } from "react-router-dom";
+import { IoEyeOff, IoEye } from "react-icons/io5";
 
 export default function Signup() {
   const [form, setForm] = useState<SignUpFormData>({
@@ -18,6 +19,7 @@ export default function Signup() {
   const [signupsuccess, setSignupsuccess] = useState(false);
   const [signupfailed, setSignupfailed] = useState(false);
   const [signuperror, setSignuperror] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const isValidPassword = (password: string): boolean => {
@@ -109,24 +111,34 @@ export default function Signup() {
             required
           />
 
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded mb-4"
-            required
-          />
+          <div className="relative pb-4">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Password"
+              value={form.password}
+              onChange={handleChange}
+              className="w-full pr-10 border rounded focus:outline-none focus:ring-2 focus:ring-primary text-sm px-4 py-2"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 right-3 flex items-center text-gray-500 cursor-pointer"
+              tabIndex={-1}
+            >
+              {!showPassword ? <IoEyeOff size={18} /> : <IoEye size={18} />}
+            </button>
+          </div>
           {passwordError && (
             <p className="text-red-500 text-sm mb-3">{passwordError}</p>
           )}
           <button
             type="submit"
-            className={`w-full py-2 rounded transition ${
+            className={`w-full bg-primary text-white py-2 rounded transition  ${
               loading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-primary hover:bg-primarydark text-white cursor-pointer"
+                ? " cursor-not-allowed"
+                : "cursor-pointer hover:bg-primarydark "
             }`}
             disabled={loading}
           >

@@ -8,7 +8,6 @@ interface AddBookProps {
   onSuccess: () => void;
 }
 
-
 export default function AddBook({ onClose, onSuccess }: AddBookProps) {
   const [formData, setFormData] = useState({
     title: "",
@@ -21,6 +20,7 @@ export default function AddBook({ onClose, onSuccess }: AddBookProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -31,14 +31,18 @@ export default function AddBook({ onClose, onSuccess }: AddBookProps) {
   }, []);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      setImagePreview(URL.createObjectURL(selectedFile));
     }
   };
 
@@ -127,6 +131,13 @@ export default function AddBook({ onClose, onSuccess }: AddBookProps) {
             </option>
           ))}
         </select>
+        {imagePreview && (
+          <img
+            src={imagePreview}
+            alt="Preview"
+            className="w-full h-48 object-contain mb-4 border rounded"
+          />
+        )}
 
         <label className="inline-block bg-primary text-white text-sm px-4 py-2 rounded cursor-pointer hover:bg-primarydark mb-4">
           Upload Image

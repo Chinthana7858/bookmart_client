@@ -15,7 +15,9 @@ export default function Cart() {
   const [loading, setLoading] = useState(true);
   const [buyloading, setBuyloading] = useState(false);
   const { user } = useAuth();
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [showorderconfirmmodal, setShowOrderconfirmmodal] = useState(false);
+  const [showremoveconfirmmodal, setShowRemoveconfirmmodal] = useState(false);
   const [orderplacedalertOpen, setOrderplacedalertOpen] = useState(false);
   let totalPrice = 0;
 
@@ -39,11 +41,7 @@ export default function Cart() {
   }, [user]);
 
   const removeCartItem = async (id: number) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to remove this item from the cart?"
-    );
-    if (!confirmed) return;
-
+    setShowRemoveconfirmmodal(false);
     try {
       await axios.delete(API.REMOVE_CART_ITEMS(id), {
         withCredentials: true,
@@ -53,6 +51,7 @@ export default function Cart() {
       console.error("Failed to remove cart item", err);
     } finally {
       setLoading(false);
+      window.location.reload();
     }
   };
 
@@ -143,8 +142,11 @@ export default function Cart() {
 
                     <div>
                       <button
-                        className="bg-primary text-white px-2 py-1 rounded hover:bg-primarydark cursor-pointer"
-                        onClick={() => removeCartItem(item.id)}
+                        className="bg-primary text-white px-2 py-1 rounded hover:bg-primarydark"
+                        onClick={() => {
+                          setSelectedItemId(item.id);
+                          setShowRemoveconfirmmodal(true);
+                        }}
                       >
                         Remove
                       </button>
@@ -160,10 +162,10 @@ export default function Cart() {
               <div>
                 <button
                   disabled={buyloading || user == null}
-                  className={`px-6 py-2 rounded-full font-semibold transition duration-300 ${
+                  className={`px-6 py-2 rounded-full font-semibold transition duration-300 bg-primary hover:bg-primarydark text-white ${
                     user == null || buyloading
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-primary hover:bg-primarydark text-white cursor-pointer"
+                      ? "cursor-not-allowed"
+                      : "cursor-pointer"
                   }`}
                   onClick={() => {
                     setShowOrderconfirmmodal(true);
@@ -183,9 +185,16 @@ export default function Cart() {
       </div>
       <Footer />
       <ConfirmModal
+        isOpen={showremoveconfirmmodal}
+        title="Remove Item"
+        message="Are you sure you want to remove this item from your cart?"
+        onConfirm={() => selectedItemId && removeCartItem(selectedItemId)}
+        onCancel={() => setShowRemoveconfirmmodal(false)}
+      />
+      <ConfirmModal
         isOpen={showorderconfirmmodal}
-        title="Are you want to buy these items?"
-        message="This action cannot be undone."
+        title="Confirm Purchase"
+        message="Are you want to buy these items?"
         onConfirm={() => {
           handleBuyNow();
         }}

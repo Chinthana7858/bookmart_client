@@ -3,6 +3,7 @@ import axios from "axios";
 import API from "../../../../const/api_paths";
 import type { Book } from "../../../../types/book";
 import AddBook from "../../molecules/modals/AddBook";
+import LoadingSpinner from "../../atoms/LoadingSpinner";
 
 export default function BookManagement() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -202,7 +203,7 @@ export default function BookManagement() {
       </div>
 
       {loading ? (
-        <p>Loading books...</p>
+        <LoadingSpinner />
       ) : books.length === 0 ? (
         <p>No books found.</p>
       ) : (

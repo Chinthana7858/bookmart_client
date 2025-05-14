@@ -18,26 +18,7 @@ export default function Home() {
   const [thispage, setThispage] = useState(1);
   const [total, setTotal] = useState(0);
 
-  const limit = 10;
-
-  const fetchPaginatedBooks = () => {
-    const offset = (thispage - 1) * limit;
-
-    axios
-      .get(API.GET_PAGINATED_PRODUCTS(limit, offset), {
-        withCredentials: true,
-      })
-      .then((res) => {
-        setBooks(res.data.products);
-        setTotal(res.data.total);
-      })
-      .catch((err) => console.error("Failed to fetch books:", err))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    fetchPaginatedBooks();
-  }, [thispage]);
+  const limit = 12;
 
   useEffect(() => {
     axios

@@ -5,6 +5,7 @@ import type { Book } from "../../types/book";
 import ConfirmModal from "../UI/molecules/modals/ConfirmModal";
 import AlertModal from "../UI/molecules/modals/AlertModal";
 import { useAuth } from "../../AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function BookDetails({
   id,
@@ -23,7 +24,7 @@ export default function BookDetails({
   const [cartaddloading, setCartaddloading] = useState(false);
   const [buyloading, setBuyloading] = useState(false);
   const { user } = useAuth();
-
+  const navigate = useNavigate();
   useEffect(() => {
     if (!id) return;
 
@@ -180,24 +181,36 @@ export default function BookDetails({
 
           <div className="flex space-x-4">
             <button
-              onClick={handleAddToCart}
-              disabled={stock === 0 || cartaddloading||user==null}
-              className={`px-6 py-2 rounded-full font-semibold transition duration-300 ${
-                stock === 0||user==null||cartaddloading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-primary hover:bg-primarydark text-white cursor-pointer"
+              onClick={() => {
+                if (!user) {
+                  navigate("/signin");
+                } else {
+                  handleAddToCart();
+                }
+              }}
+              disabled={stock === 0 || cartaddloading}
+              className={`px-6 py-2 rounded-full font-semibold transition duration-300 bg-primary hover:bg-primarydark text-white  ${
+                stock === 0 || cartaddloading
+                  ? " cursor-not-allowed"
+                  : "cursor-pointer"
               }`}
             >
               {cartaddloading ? "Adding to Cart" : "Add to Cart"}
             </button>
 
             <button
-              onClick={() => setShowOrderconfirmmodal(true)}
-              disabled={stock === 0 || buyloading||user==null}
-              className={`px-6 py-2 rounded-full font-semibold transition duration-300 ${
-                stock === 0||user==null||buyloading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-primary hover:bg-primarydark text-white cursor-pointer"
+              onClick={() => {
+                if (!user) {
+                  navigate("/signin");
+                } else {
+                  setShowOrderconfirmmodal(true);
+                }
+              }}
+              disabled={stock === 0 || buyloading}
+              className={`px-6 py-2 rounded-full font-semibold transition duration-300 bg-primary hover:bg-primarydark text-white ${
+                stock === 0 || buyloading
+                  ? "cursor-not-allowed"
+                  : "cursor-pointer"
               }`}
             >
               {buyloading ? "Processing" : "Buy Now"}
@@ -207,8 +220,8 @@ export default function BookDetails({
       </div>
       <ConfirmModal
         isOpen={showorderconfirmmodal}
-        title="Are you want to buy this item?"
-        message="This action cannot be undone."
+        title="Confirm Purchase"
+        message="Are you want to buy these items?"
         onConfirm={handleBuyNow}
         onCancel={() => setShowOrderconfirmmodal(false)}
       />

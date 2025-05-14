@@ -3,6 +3,7 @@ import axios from "axios";
 import API from "../../../../const/api_paths";
 import AddCategory from "../../molecules/modals/AddCategory";
 import type { Category } from "../../../../types/category";
+import LoadingSpinner from "../../atoms/LoadingSpinner";
 
 
 export default function CategoryManagement() {
@@ -48,7 +49,7 @@ export default function CategoryManagement() {
       </div>
 
       {loading ? (
-        <p>Loading categories...</p>
+        <LoadingSpinner />
       ) : categories.length === 0 ? (
         <p>No categories found.</p>
       ) : (

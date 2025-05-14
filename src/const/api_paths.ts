@@ -38,6 +38,7 @@ const API = {
   CREATE_ORDER_ITEM: `${BASE_URL}/orders/items`,
   GET_ORDERS_BY_USER: (id: number) => `${BASE_URL}/orders/user/${id}`,
   GET_ORDERS:  `${BASE_URL}/orders/`,
+  GET_ORDERS_PAGINATED:  `${BASE_URL}/orders/paginated`,
 
   //CART
   ADD_TO_CART: `${BASE_URL}/cart`,
