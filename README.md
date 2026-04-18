@@ -3,6 +3,8 @@
 This is a front-end of e-commerce web application with web tracking and recommendation features. It allows both registered and guest users to browse products and get intelligent recommendations based on user activity.
 
 ---
+<img width="1100" height="687" alt="bookmart" src="https://github.com/user-attachments/assets/9025be70-b93f-4f4d-84c0-9ee1caaec201" />
+
 
 ## 📌 Features
 
