@@ -1,11 +1,16 @@
-import axios from "axios";
 import { useEffect, useState } from "react";
-import API from "../../const/api_paths";
 import type { Book } from "../../types/book";
 import ConfirmModal from "../UI/molecules/modals/ConfirmModal";
 import AlertModal from "../UI/molecules/modals/AlertModal";
-import { useAuth } from "../../AuthContext";
+import { useAuth } from "../../auth";
 import { useNavigate } from "react-router-dom";
+import { formatDisplayDate } from "../../utils/date";
+import {
+  useAddToCartMutation,
+  useCreateActivityMutation,
+  useCreateOrderItemMutation,
+  useCreateOrderMutation,
+} from "../../services/bookmartApi";
 
 export default function BookDetails({
   id,
@@ -13,51 +18,52 @@ export default function BookDetails({
   title,
   price,
   description,
+  publisher,
+  author,
+  language,
   stock,
-  categoryName,
+  categoryNames,
   created_at,
-}: Book & { categoryName: string }) {
+}: Book & { categoryNames: string[] }) {
   const [quantity, setQuantity] = useState(1);
   const [showorderconfirmmodal, setShowOrderconfirmmodal] = useState(false);
-  const [orderplacedalertOpen, setOrderplacedalertOpen] = useState(false);
+  const [showcartconfirmmodal, setShowCartconfirmmodal] = useState(false);
   const [addcartalertOpen, setAddcartalertOpen] = useState(false);
-  const [cartaddloading, setCartaddloading] = useState(false);
-  const [buyloading, setBuyloading] = useState(false);
+  const [errorAlertOpen, setErrorAlertOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [createActivity] = useCreateActivityMutation();
+  const [addToCart, { isLoading: cartaddloading }] = useAddToCartMutation();
+  const [createOrder, { isLoading: creatingOrder }] = useCreateOrderMutation();
+  const [createOrderItem, { isLoading: creatingOrderItem }] = useCreateOrderItemMutation();
+  const buyloading = creatingOrder || creatingOrderItem;
+
   useEffect(() => {
     if (!id) return;
 
     const logViewActivity = async () => {
       try {
-        await axios.post(
-          API.CREATE_ACTIVITY,
-          {
+        await createActivity({
             user_id: user?.id,
             product_id: Number(id),
             action: "view",
-          },
-          { withCredentials: true }
-        );
+        }).unwrap();
       } catch (err) {
         console.error("Failed to log view activity", err);
       }
     };
 
     logViewActivity();
-  }, [id]);
+  }, [createActivity, id, user?.id]);
 
   const logBuyActivity = async () => {
     try {
-      await axios.post(
-        API.CREATE_ACTIVITY,
-        {
+      await createActivity({
           user_id: user?.id,
           product_id: Number(id),
           action: "buy",
-        },
-        { withCredentials: true }
-      );
+      }).unwrap();
     } catch (err) {
       console.error("Failed to log buy activity", err);
     }
@@ -65,172 +71,177 @@ export default function BookDetails({
 
   const logCartActivity = async () => {
     try {
-      await axios.post(
-        API.CREATE_ACTIVITY,
-        {
+      await createActivity({
           user_id: user?.id,
           product_id: Number(id),
           action: "add_to_cart",
-        },
-        { withCredentials: true }
-      );
+      }).unwrap();
     } catch (err) {
       console.error("Failed to log view activity", err);
     }
   };
 
   const handleAddToCart = async () => {
-    setCartaddloading(true);
     try {
-      await axios.post(
-        API.ADD_TO_CART,
-        {
-          user_id: user?.id,
-          product_id: Number(id),
-          quantity: quantity,
-        },
-        { withCredentials: true }
-      );
+      await addToCart({
+        product_id: Number(id),
+        quantity: quantity,
+      }).unwrap();
       logCartActivity();
 
+      setShowCartconfirmmodal(false);
       setAddcartalertOpen(true);
     } catch (err) {
       console.error("Failed to add to cart", err);
-    } finally {
-      setCartaddloading(false);
+      setErrorMessage("Could not add this book to your cart. Please check stock and try again.");
+      setErrorAlertOpen(true);
     }
   };
   const handleBuyNow = async () => {
-    setBuyloading(true);
     setShowOrderconfirmmodal(false);
     try {
-      const response = await axios.post(
-        API.CREATE_ORDER,
-        {
-          user_id: user?.id,
-        },
-        { withCredentials: true }
-      );
-
-      const orderId = response.data.id;
-      await axios.post(
-        API.CREATE_ORDER_ITEM,
-        {
+      const response = await createOrder().unwrap();
+      const orderId = response.id;
+      await createOrderItem({
           order_id: orderId,
           product_id: id,
           quantity: quantity,
-        },
-        { withCredentials: true }
-      );
+      }).unwrap();
       logBuyActivity();
       setShowOrderconfirmmodal(false);
-      setOrderplacedalertOpen(true);
+      navigate(`/payment/${orderId}`);
     } catch (err) {
       console.error("Failed to place order", err);
-      alert("Something went wrong while placing the order.");
-    } finally {
-      setBuyloading(false);
+      setErrorMessage("Something went wrong while placing the order.");
+      setErrorAlertOpen(true);
     }
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex flex-col md:flex-row gap-8">
-        <div className="w-full md:w-1/3">
-          <img src={imageUrl} alt={title} className="w-full rounded border" />
+    <div className="page-container py-8">
+      <div className="grid gap-8 lg:grid-cols-[420px_1fr]">
+        <div className="surface overflow-hidden p-4">
+          <div className="aspect-[3/4] overflow-hidden rounded-md bg-stone-100">
+            <img src={imageUrl} alt={title} className="h-full w-full object-cover" />
+          </div>
         </div>
-        <div className="w-full md:w-2/3 bg-secondary p-8 rounded-xl shadow-lg ">
-          <h2 className="text-3xl font-bold text-primary mb-3">{title}</h2>
 
-          <p className="text-lg text-gray-800 font-semibold mb-2">
-            $. {price.toFixed(2)}
+        <div className="surface p-6 md:p-8">
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            {categoryNames.map((categoryName) => (
+              <span
+                key={categoryName}
+                className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-primarydark"
+              >
+                {categoryName}
+              </span>
+            ))}
+            <span className="text-sm text-stone-500">
+              Added {formatDisplayDate(created_at)}
+            </span>
+          </div>
+
+          <h1 className="max-w-3xl text-3xl font-bold leading-tight text-stone-950 md:text-4xl">
+            {title}
+          </h1>
+          <p className="mt-4 text-2xl font-bold text-primary">
+            $ {Number(price).toFixed(2)}
           </p>
-          <p className="text-gray-700 mb-3 leading-relaxed">{description}</p>
+          <p className="mt-5 max-w-3xl text-base leading-7 text-stone-600">
+            {description}
+          </p>
 
-          <div className="text-sm text-gray-600 mb-1">
-            Category: <span className="font-medium">{categoryName}</span>
-          </div>
-          <div className="text-sm text-gray-600 mb-4">
-            Added: {new Date(created_at).toLocaleDateString()}
-          </div>
-
-          {stock !== 0 ? (
-            <div className="text-green-600 font-medium mb-4">
-              Available: {stock} item(s)
+          <dl className="mt-6 grid gap-3 border-t border-stone-200 pt-6 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="font-semibold text-stone-950">Author</dt>
+              <dd className="mt-1 text-stone-600">{author || "Unknown"}</dd>
             </div>
-          ) : (
-            <div className="text-red-500 font-semibold mb-4">Out of Stock</div>
-          )}
+            <div>
+              <dt className="font-semibold text-stone-950">Publisher</dt>
+              <dd className="mt-1 text-stone-600">{publisher || "Unknown"}</dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-stone-950">Language</dt>
+              <dd className="mt-1 text-stone-600">{language || "Unknown"}</dd>
+            </div>
+          </dl>
 
-          <div className="flex items-center mb-6 space-x-4">
-            <label htmlFor="quantity" className="font-medium text-gray-700">
-              Qty:
-            </label>
-            <input
-              id="quantity"
-              type="number"
-              min={1}
-              max={stock}
-              value={quantity}
-              onChange={(e) =>
-                setQuantity(Math.max(1, Math.min(stock, +e.target.value)))
-              }
-              className="w-20 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
+          <div className="mt-6">
+            {stock !== 0 ? (
+              <div className="inline-flex rounded-md bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+                In stock: {stock} item(s)
+              </div>
+            ) : (
+              <div className="inline-flex rounded-md bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                Out of stock
+              </div>
+            )}
           </div>
 
-          <div className="flex space-x-4">
-            <button
-              onClick={() => {
-                if (!user) {
-                  navigate("/signin");
-                } else {
-                  handleAddToCart();
+          <div className="mt-8 flex flex-col gap-5 border-t border-stone-200 pt-6 sm:flex-row sm:items-end">
+            <div>
+              <label htmlFor="quantity" className="mb-2 block text-sm font-semibold text-stone-700">
+                Quantity
+              </label>
+              <input
+                id="quantity"
+                type="number"
+                min={1}
+                max={stock}
+                value={quantity}
+                onChange={(e) =>
+                  setQuantity(Math.max(1, Math.min(stock, +e.target.value)))
                 }
-              }}
-              disabled={stock === 0 || cartaddloading}
-              className={`px-6 py-2 rounded-full font-semibold transition duration-300 bg-primary hover:bg-primarydark text-white  ${
-                stock === 0 || cartaddloading
-                  ? " cursor-not-allowed"
-                  : "cursor-pointer"
-              }`}
-            >
-              {cartaddloading ? "Adding to Cart" : "Add to Cart"}
-            </button>
+                className="field w-28"
+              />
+            </div>
 
-            <button
-              onClick={() => {
-                if (!user) {
-                  navigate("/signin");
-                } else {
-                  setShowOrderconfirmmodal(true);
-                }
-              }}
-              disabled={stock === 0 || buyloading}
-              className={`px-6 py-2 rounded-full font-semibold transition duration-300 bg-primary hover:bg-primarydark text-white ${
-                stock === 0 || buyloading
-                  ? "cursor-not-allowed"
-                  : "cursor-pointer"
-              }`}
-            >
-              {buyloading ? "Processing" : "Buy Now"}
-            </button>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => {
+                  if (!user) {
+                    navigate("/signin");
+                  } else {
+                    setShowCartconfirmmodal(true);
+                  }
+                }}
+                disabled={stock === 0 || cartaddloading}
+                className="btn-secondary"
+              >
+                {cartaddloading ? "Adding" : "Add to cart"}
+              </button>
+
+              <button
+                onClick={() => {
+                  if (!user) {
+                    navigate("/signin");
+                  } else {
+                    setShowOrderconfirmmodal(true);
+                  }
+                }}
+                disabled={stock === 0 || buyloading}
+                className="btn-primary"
+              >
+                {buyloading ? "Processing" : "Buy now"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
       <ConfirmModal
         isOpen={showorderconfirmmodal}
         title="Confirm Purchase"
-        message="Are you want to buy these items?"
+        message="Do you want to buy these items?"
         onConfirm={handleBuyNow}
         onCancel={() => setShowOrderconfirmmodal(false)}
       />
-      <AlertModal
-        isOpen={orderplacedalertOpen}
-        title="Success"
-        message="Your order was placed successfully!"
-        onClose={() => setOrderplacedalertOpen(false)}
-        type="success"
+      <ConfirmModal
+        isOpen={showcartconfirmmodal}
+        title="Add to cart?"
+        message={`Add ${quantity} item(s) of "${title}" to your cart?`}
+        confirmText="Add"
+        onConfirm={handleAddToCart}
+        onCancel={() => setShowCartconfirmmodal(false)}
       />
       <AlertModal
         isOpen={addcartalertOpen}
@@ -238,6 +249,13 @@ export default function BookDetails({
         message="Added to cart!"
         onClose={() => setAddcartalertOpen(false)}
         type="success"
+      />
+      <AlertModal
+        isOpen={errorAlertOpen}
+        title="Error"
+        message={errorMessage}
+        onClose={() => setErrorAlertOpen(false)}
+        type="error"
       />
     </div>
   );

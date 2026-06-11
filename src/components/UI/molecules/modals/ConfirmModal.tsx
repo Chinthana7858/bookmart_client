@@ -1,4 +1,6 @@
 
+import { FiCheck, FiX } from "react-icons/fi";
+import ModalShell from "./ModalShell";
 
 type ConfirmModalProps = {
   title?: string;
@@ -22,25 +24,24 @@ export default function ConfirmModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/5 backdrop-blur-xs">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm text-center">
-        <h2 className="text-lg font-bold text-gray-800 mb-3">{title}</h2>
-        <p className="text-gray-600 mb-5">{message}</p>
-        <div className="flex justify-center gap-4">
-          <button
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primarydark transition cursor-pointer"
-            onClick={onConfirm}
-          >
+    <ModalShell
+      title={title}
+      onClose={onCancel}
+      maxWidth="max-w-sm"
+      footer={
+        <>
+          <button className="btn-primary" onClick={onConfirm}>
+            <FiCheck size={16} />
             {confirmText}
           </button>
-          <button
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition cursor-pointer"
-            onClick={onCancel}
-          >
+          <button className="btn-secondary" onClick={onCancel}>
+            <FiX size={16} />
             {cancelText}
           </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <p className="leading-relaxed text-stone-600">{message}</p>
+    </ModalShell>
   );
 }

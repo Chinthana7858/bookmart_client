@@ -7,9 +7,27 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Vite / tooling cache
+.vite/
+.turbo/
+.cache/
+
+# Flowbite generated files
+.flowbite-react/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local-only files
 *.local
 
 # Editor directories and files

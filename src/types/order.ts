@@ -10,7 +10,10 @@ export type OrderItem = {
 export type Order = {
   id: number;
   user_id: number;
-   user: User;
+  user: User;
   order_date: string;
+  status: string;
+  payment_status: string;
+  total_amount: number;
   items: OrderItem[];
 };

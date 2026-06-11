@@ -1,50 +1,50 @@
-import { createContext, useContext, useEffect, useState } from "react";
-import axios from "axios";
-import API from "./const/api_paths";
+import { useEffect, useState, type ReactNode } from "react";
+import { useDispatch } from "react-redux";
+import { bookmartApi, useAuthenticateQuery, useLogoutMutation } from "./services/bookmartApi";
+import type { AppDispatch } from "./store";
+import { AuthContext, normalizeUser, type AuthUser } from "./auth";
 
-export interface AuthUser {
-  id: number;
-  name: string;
-  email: string;
-  role: "user" | "admin"; 
-}
-
-
-interface AuthContextType {
-  user: AuthUser | null;
-  setUser: (user: AuthUser | null) => void;
-  loading: boolean;
-  logout: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-AuthContext.displayName = "AuthContext";
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+  const dispatch = useDispatch<AppDispatch>();
+  const { data, isLoading, isError } = useAuthenticateQuery();
+  const [logoutRequest] = useLogoutMutation();
 
   useEffect(() => {
-    axios
-      .get(API.AUTHENTICATE, { withCredentials: true })
-      .then((res) => setUser(res.data))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
-  }, []);
+    if (data) {
+      setUser(normalizeUser(data));
+    } else if (isError) {
+      setUser(null);
+    }
+
+    if (!isLoading) {
+      setHasCheckedAuth(true);
+    }
+  }, [data, isError, isLoading]);
 
   const logout = async () => {
-    await axios.post(API.LOGOUT, null, { withCredentials: true });
     setUser(null);
+    try {
+      await logoutRequest().unwrap();
+    } catch (error) {
+      console.warn("Backend logout failed; clearing local session anyway.", error);
+    } finally {
+      setUser(null);
+      dispatch(bookmartApi.util.resetApiState());
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser: (nextUser) => setUser(nextUser ? normalizeUser(nextUser) : null),
+        loading: !hasCheckedAuth,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
 };

@@ -1,4 +1,4 @@
-
+import ModalShell from "./ModalShell";
 
 type AlertModalProps = {
   isOpen: boolean;
@@ -23,19 +23,20 @@ export default function AlertModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/5 backdrop-blur-xs">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-sm text-center">
-        <div className={`mb-4 py-2 px-3 rounded ${typeColors[type]}`}>
-          <h2 className="text-lg font-bold">{title}</h2>
-        </div>
-        <p className="text-gray-700 mb-6">{message}</p>
-        <button
-          className="px-4 py-2 bg-primary text-white rounded hover:bg-primarydark transition cursor-pointer"
-          onClick={onClose}
-        >
+    <ModalShell
+      title={title}
+      onClose={onClose}
+      maxWidth="max-w-sm"
+      footer={
+        <button className="btn-primary" onClick={onClose}>
           OK
         </button>
+      }
+    >
+      <div className={`rounded-md px-3 py-2 text-sm font-medium ${typeColors[type]}`}>
+        {type === "success" ? "Success" : "Error"}
       </div>
-    </div>
+      <p className="leading-relaxed text-stone-600">{message}</p>
+    </ModalShell>
   );
 }

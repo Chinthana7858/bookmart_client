@@ -1,10 +1,19 @@
 import { useState } from "react";
-import { HiMenu } from "react-icons/hi";
-import { Link, useNavigate } from "react-router-dom";
+import { HiMenu, HiX } from "react-icons/hi";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { IoCartSharp } from "react-icons/io5";
 import { GrDeliver } from "react-icons/gr";
+import { FiGrid, FiUser } from "react-icons/fi";
 import ConfirmModal from "../UI/molecules/modals/ConfirmModal";
-import { useAuth } from "../../AuthContext";
+import { useAuth } from "../../auth";
+import logo from "../../assets/logo.png";
+
+const navItems = [
+  { label: "Home", to: "/" },
+  { label: "Books", to: "/home" },
+  { label: "About", to: "/#about" },
+  { label: "Contact", to: "/#contact" },
+];
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,233 +21,219 @@ export default function Navbar() {
 
   const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdmin = user?.role === "admin";
 
   const handleLogout = async () => {
     try {
       await logout();
       setShowlogoutmodal(false);
       navigate("/");
-    } catch (err) {
+    } catch {
       alert("Logout failed.");
     }
   };
-  if (loading)
-    return (
-      <nav className="bg-white shadow-sm px-6 py-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className=" flex-col">
-              <Link to={"/"} className=" cursor-pointer">
-                <div className="w-6 h-6 bg-primary rounded-sm" />
-                <h1 className="text-lg font-bold text-gray-800">Book Mart</h1>
-              </Link>
-            </div>
-          </div>
 
-          <ul className="hidden md:flex gap-6 text-sm text-gray-700">
-            <Link to={"/"}>
-              <li className="cursor-pointer hover:text-primary">Home</li>
-            </Link>
+  const linkClass = (isActive: boolean) =>
+    `rounded-md px-3 py-2 text-sm font-medium transition ${
+      isActive
+        ? "bg-secondary text-primarydark"
+        : "text-stone-600 hover:bg-stone-100 hover:text-stone-950"
+    }`;
 
-            <Link to={"/home"}>
-              <li className="cursor-pointer hover:text-primary">Books</li>
-            </Link>
+  const isNavItemActive = (to: string) => {
+    const [pathname, hash = ""] = to.split("#");
+    const targetPath = pathname || "/";
+    const targetHash = hash ? `#${hash}` : "";
 
-            <Link to="/#about">
-              <li className="cursor-pointer hover:text-primary">About us</li>
-            </Link>
-            <Link to="/#contact">
-              <li className="cursor-pointer hover:text-primary">Contact us</li>
-            </Link>
-          </ul>
-           <div>
-              <Link to={"/signin"}>
-                <button className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer mx-2">
-                  Sign in
-                </button>
-              </Link>
-              <Link to={"/signup"}>
-                <button className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer mx-2">
-                  Join us
-                </button>
-              </Link>
-            </div>
+    if (targetHash) {
+      return location.pathname === targetPath && location.hash === targetHash;
+    }
 
-          <div className="md:hidden cursor-pointer">
-            <button onClick={() => setIsOpen(!isOpen)}>
-              <HiMenu size={24} />
-            </button>
-          </div>
-        </div>
+    return location.pathname === targetPath && !location.hash;
+  };
 
-        {isOpen && (
-          <div className="md:hidden mt-4 flex flex-col gap-4 text-gray-700">
-            <Link to="/" className="hover:text-primary">
-              Home
-            </Link>
-            <a href="/#about" className="hover:text-primary">
-              About us
-            </a>
-            <a href="/#books" className="hover:text-primary">
-              Books
-            </a>
-            <a href="/#contact" className="hover:text-primary">
-              Contact us
-            </a>
-            
-          </div>
-        )}
-        
-      </nav>
-    );
   return (
-    <nav className="bg-white shadow-sm px-6 py-4">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className=" flex-col">
-            <Link to={"/"} className=" cursor-pointer">
-              <div className="w-6 h-6 bg-primary rounded-sm" />
-              <h1 className="text-lg font-bold text-gray-800">Book Mart</h1>
-            </Link>
-            {user && (
-              <div className=" text-xs font-medium  text-gray-500">
-                Welcome, {user.name}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <ul className="hidden md:flex gap-6 text-sm text-gray-700">
-          <Link to={"/"}>
-            <li className="cursor-pointer hover:text-primary">Home</li>
-          </Link>
-
-          <Link to={"/home"}>
-            <li className="cursor-pointer hover:text-primary">Books</li>
-          </Link>
-
-          <Link to="/#about">
-            <li className="cursor-pointer hover:text-primary">About us</li>
-          </Link>
-          <Link to="/#contact">
-            <li className="cursor-pointer hover:text-primary">Contact us</li>
-          </Link>
-        </ul>
-
-        <div className="hidden md:flex gap-2">
-          {user ? (
-            <div className="flex items-center gap-6 bg-white px-6 py-3   border-gray-200">
-              {/* Cart */}
-              <Link
-                to="/cart"
-                className="flex items-center gap-2 text-primary font-semibold hover:text-primarydark transition duration-200"
-              >
-                <IoCartSharp size={24} />
-                <span>Cart</span>
-              </Link>
-
-              <Link
-                to="/orders"
-                className="flex items-center gap-2 text-primary font-semibold hover:text-primarydark transition duration-200"
-              >
-                <GrDeliver size={20} />
-                <span>Orders</span>
-              </Link>
-
-              <button
-                className="ml-4 bg-primary hover:bg-primarydark text-white font-medium px-5 py-2 rounded-full transition duration-300 cursor-pointer"
-                onClick={() => {
-                  setShowlogoutmodal(true);
-                }}
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
+    <nav className="sticky top-0 z-40 border-b border-stone-200 bg-white/95 backdrop-blur">
+      <div className="page-container">
+        <div className="flex min-h-16 items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-3">
+            <img
+              src={logo}
+              alt="BookMart"
+              className="h-10 w-10 rounded-md object-contain"
+            />
             <div>
-              <Link to={"/signin"}>
-                <button className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer mx-2">
-                  Sign in
-                </button>
-              </Link>
-              <Link to={"/signup"}>
-                <button className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer mx-2">
-                  Join us
-                </button>
-              </Link>
-            </div>
-          )}
-        </div>
-
-        <div className="md:hidden cursor-pointer">
-          <button onClick={() => setIsOpen(!isOpen)}>
-            <HiMenu size={24} />
-          </button>
-        </div>
-      </div>
-
-      {isOpen && (
-        <div className="md:hidden mt-4 flex flex-col gap-4 text-gray-700">
-          <Link to="/" className="hover:text-primary">
-            Home
-          </Link>
-          <a href="/#about" className="hover:text-primary">
-            About us
-          </a>
-          <a href="/#books" className="hover:text-primary">
-            Books
-          </a>
-          <a href="/#contact" className="hover:text-primary">
-            Contact us
-          </a>
-
-          <div className="flex gap-2">
-            {user ? (
-              <div className="flex flex-col items-center gap-3 text-center">
-                <div className="flex flex-col items-left gap-4 text-primary font-semibold">
-                  <Link
-                    to="/orders"
-                    className="flex items-center gap-2 hover:text-primarydark "
-                  >
-                    <GrDeliver size={20} />
-                    <span className="text-sm">Orders</span>
-                  </Link>
-
-                  <Link
-                    to="/cart"
-                    className="flex items-center gap-2 hover:text-primarydark "
-                  >
-                    <IoCartSharp size={22} />
-                    <span className="text-sm">Cart</span>
-                  </Link>
+              <div className="text-base font-bold tracking-normal text-stone-950">
+                BookMart
+              </div>
+              {user && (
+                <div className="hidden text-xs text-stone-500 sm:block">
+                  Welcome, {user.name}
                 </div>
+              )}
+            </div>
+          </Link>
 
+          <div className="hidden items-center gap-1 md:flex">
+            {navItems.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={linkClass(isNavItemActive(item.to))}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="hidden items-center gap-3 md:flex">
+            {loading ? (
+              <div className="h-10 w-32 animate-pulse rounded-md bg-stone-100" />
+            ) : user ? (
+              <>
+                {isAdmin ? (
+                  <Link
+                    to="/admin/dashboard"
+                    className="btn-secondary h-10 px-3"
+                    aria-label="Admin dashboard"
+                  >
+                    <FiGrid size={18} />
+                    Dashboard
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      to="/cart"
+                      className="btn-secondary h-10 px-3"
+                      aria-label="Cart"
+                    >
+                      <IoCartSharp size={20} />
+                      Cart
+                    </Link>
+                    <Link
+                      to="/orders"
+                      className="btn-secondary h-10 px-3"
+                      aria-label="Orders"
+                    >
+                      <GrDeliver size={18} />
+                      Orders
+                    </Link>
+                    <Link
+                      to="/profile"
+                      className="btn-secondary h-10 px-3"
+                      aria-label="Profile"
+                    >
+                      <FiUser size={18} />
+                      Profile
+                    </Link>
+                  </>
+                )}
                 <button
-                  onClick={() => {
-                    setShowlogoutmodal(true);
-                  }}
-                  className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer mr-2"
+                  className="btn-primary h-10"
+                  onClick={() => setShowlogoutmodal(true)}
                 >
                   Logout
                 </button>
-              </div>
+              </>
             ) : (
-              <div>
-                <Link to={"/signin"}>
-                  <button className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer mr-2">
-                    Sign in
-                  </button>
+              <>
+                <Link to="/signin" className="btn-secondary h-10">
+                  Sign in
                 </Link>
-                <Link to={"/signup"}>
-                  <button className="bg-primary text-white px-4 py-1 rounded hover:bg-primarydark cursor-pointer">
-                    Join us
-                  </button>
+                <Link to="/signup" className="btn-primary h-10">
+                  Join us
                 </Link>
-              </div>
+              </>
             )}
           </div>
+
+          <button
+            className="grid h-10 w-10 place-items-center rounded-md border border-stone-200 text-stone-700 md:hidden"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label="Open menu"
+          >
+            {isOpen ? <HiX size={22} /> : <HiMenu size={22} />}
+          </button>
         </div>
-      )}
+
+        {isOpen && (
+          <div className="border-t border-stone-200 py-4 md:hidden">
+            <div className="flex flex-col gap-1">
+              {navItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={linkClass(isNavItemActive(item.to))}
+                  onClick={() => setIsOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+
+            <div className="mt-4 grid gap-2">
+              {user ? (
+                <>
+                  {isAdmin ? (
+                    <Link
+                      to="/admin/dashboard"
+                      className="btn-secondary justify-start"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <FiGrid size={18} />
+                      Dashboard
+                    </Link>
+                  ) : (
+                    <>
+                      <Link
+                        to="/cart"
+                        className="btn-secondary justify-start"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <IoCartSharp size={20} />
+                        Cart
+                      </Link>
+                      <Link
+                        to="/orders"
+                        className="btn-secondary justify-start"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <GrDeliver size={18} />
+                        Orders
+                      </Link>
+                      <Link
+                        to="/profile"
+                        className="btn-secondary justify-start"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        <FiUser size={18} />
+                        Profile
+                      </Link>
+                    </>
+                  )}
+                  <button
+                    className="btn-primary justify-start"
+                    onClick={() => setShowlogoutmodal(true)}
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/signin" className="btn-secondary">
+                    Sign in
+                  </Link>
+                  <Link to="/signup" className="btn-primary">
+                    Join us
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       <ConfirmModal
         isOpen={showlogoutmodal}
         title="Do you want to logout?"
