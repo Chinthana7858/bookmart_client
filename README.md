@@ -1,6 +1,7 @@
 # BookMart Client
 
 Frontend application for BookMart, an online bookstore with public book browsing, customer accounts, cart checkout, payments, recommendations, and a professional admin console.
+<img width="2320" height="1780" alt="screenshots" src="https://github.com/user-attachments/assets/544aadef-8f6f-4550-b78f-9563dd2d2c08" />
 
 ## Web Tracking And Recommendations
 
