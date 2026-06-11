@@ -2,6 +2,20 @@
 
 Frontend application for BookMart, an online bookstore with public book browsing, customer accounts, cart checkout, payments, recommendations, and a professional admin console.
 
+## Web Tracking And Recommendations
+
+The client records lightweight product interaction events so BookMart can show popular books and recommendation results.
+
+Tracked actions:
+
+- `view` when a book detail page is opened.
+- `add_to_cart` when a book is added to cart.
+- `buy` when checkout is started from a book.
+
+Guest users receive a `guest_session_id` cookie so anonymous browsing can still contribute to recommendations. Logged-in users include their `user_id` in activity events.
+
+The frontend sends these events through the RTK Query activity endpoint to `POST /activities/`. Payment details are not tracked through this flow; payment processing is handled separately by Stripe and the backend payment endpoints.
+
 ## Features
 
 - Public landing page and book catalogue.
