@@ -1,118 +1,101 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
-import API from "../../../../const/api_paths";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { skipToken } from "@reduxjs/toolkit/query";
+import { FiPlus } from "react-icons/fi";
 import type { Book } from "../../../../types/book";
-import AddBook from "../../molecules/modals/AddBook";
 import LoadingSpinner from "../../atoms/LoadingSpinner";
+import { DropdownSelect, SearchBar } from "../../atoms/FormControls";
+import PaginationControls from "../../atoms/PaginationControls";
+import { formatDisplayDate } from "../../../../utils/date";
+import { ADMIN_PAGE_SIZE } from "../../../../features/admin/adminConstants";
+import AddBook from "../../molecules/modals/AddBook";
+import {
+  Badge,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeadCell,
+  TableRow,
+} from "flowbite-react";
+import {
+  useGetCategoriesQuery,
+  useGetPaginatedProductsQuery,
+  useGetProductsByCategoryQuery,
+  useSearchProductsQuery,
+  useSortProductsQuery,
+} from "../../../../services/bookmartApi";
 
 export default function BookManagement() {
+  const navigate = useNavigate();
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<{ [id: number]: string }>({});
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [sortmethod, setSortMethod] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [thispage, setThispage] = useState(1);
-  const [total, setTotal] = useState(0);
-
-  const limit = 10;
-
-  const fetchPaginatedBooks = () => {
-    const offset = (thispage - 1) * limit;
-
-    axios
-      .get(API.GET_PAGINATED_PRODUCTS(limit, offset), {
-        withCredentials: true,
-      })
-      .then((res) => {
-        setBooks(res.data.products);
-        setTotal(res.data.total);
-      })
-      .catch((err) => console.error("Failed to fetch books:", err))
-      .finally(() => setLoading(false));
-  };
-
+  const [showAddBookModal, setShowAddBookModal] = useState(false);
+  const offset = (thispage - 1) * ADMIN_PAGE_SIZE;
+  const [sortBy, order] = sortmethod ? sortmethod.split("-") : ["", ""];
+  const { data: categoryData, isError: categoriesFailed } = useGetCategoriesQuery();
+  const paginatedQuery = useGetPaginatedProductsQuery(
+    !sortmethod && !selectedCategoryId && !searchTerm.trim()
+      ? { limit: ADMIN_PAGE_SIZE, offset }
+      : skipToken
+  );
+  const sortQuery = useSortProductsQuery(
+    sortmethod ? { sortBy, order } : skipToken
+  );
+  const categoryQuery = useGetProductsByCategoryQuery(
+    selectedCategoryId ? Number(selectedCategoryId) : skipToken
+  );
+  const searchQuery = useSearchProductsQuery(
+    searchTerm.trim() ? searchTerm : skipToken
+  );
+  useEffect(() => {
+    if (categoryData) {
+      const map: { [id: number]: string } = {};
+      categoryData.forEach((cat) => {
+        map[cat.id] = cat.name;
+      });
+      setCategories(map);
+    }
+  }, [categoryData]);
 
   useEffect(() => {
-    axios
-      .get(API.GET_CATEGORIES, { withCredentials: true })
-      .then((res) => {
-        const map: { [id: number]: string } = {};
-        res.data.forEach((cat: { id: number; name: string }) => {
-          map[cat.id] = cat.name;
-        });
-        setCategories(map);
-      })
-      .catch(() => alert("Failed to load categories"));
-  }, []);
+    if (categoriesFailed) alert("Failed to load categories");
+  }, [categoriesFailed]);
 
-  useEffect(() => {
-    setLoading(true);
+  const activeQuery = sortmethod
+    ? sortQuery
+    : selectedCategoryId
+      ? categoryQuery
+      : searchTerm.trim()
+        ? searchQuery
+        : paginatedQuery;
 
-    const offset = (thispage - 1) * limit;
+  const { visibleBooks, total } = useMemo(() => {
+    const data = activeQuery.data;
+    if (!data) return { visibleBooks: [] as Book[], total: 0 };
 
-    // SORTING
-    if (sortmethod) {
-      const [sortBy, order] = sortmethod.split("-");
-      axios
-        .get(API.SORT_PRODUCTS(sortBy, order), {
-          withCredentials: true,
-        })
-        .then((res) => {
-          setBooks(res.data.products || res.data);
-          setTotal(res.data.total || res.data.length);
-        })
-        .catch((err) => {
-          console.error("Failed to fetch sorted books:", err);
-        })
-        .finally(() => setLoading(false));
+    if (Array.isArray(data)) {
+      return {
+        visibleBooks: data.slice(offset, offset + ADMIN_PAGE_SIZE),
+        total: data.length,
+      };
     }
 
-    // CATEGORY FILTER
-    else if (selectedCategoryId) {
-      axios
-        .get(API.GET_PRODUCTS_BY_CATEGORY(Number(selectedCategoryId)), {
-          withCredentials: true,
-        })
-        .then((res) => {
-          setBooks(res.data);
-          setTotal(res.data.length);
-        })
-        .catch((err) =>
-          console.error("Failed to fetch books by category:", err)
-        )
-        .finally(() => setLoading(false));
-    }
+    const products = "products" in data ? data.products : [];
+    const productTotal = "total" in data ? data.total : products.length;
+    const shouldSlice = Boolean(sortmethod || selectedCategoryId || searchTerm.trim());
 
-    // SEARCH
-    else if (searchTerm.trim()) {
-      axios
-        .get(API.SEARCH_PRODUCTS(searchTerm), {
-          withCredentials: true,
-        })
-        .then((res) => {
-          setBooks(res.data.products || res.data);
-          setTotal(res.data.total || res.data.length);
-        })
-        .catch((err) => console.error("Search failed:", err))
-        .finally(() => setLoading(false));
-    }
-
-    // PAGINATION DEFAULT
-    else {
-      axios
-        .get(API.GET_PAGINATED_PRODUCTS(limit, offset), {
-          withCredentials: true,
-        })
-        .then((res) => {
-          setBooks(res.data.products);
-          setTotal(res.data.total);
-        })
-        .catch((err) => console.error("Paginated fetch failed:", err))
-        .finally(() => setLoading(false));
-    }
-  }, [thispage, searchTerm, selectedCategoryId, sortmethod]);
+    return {
+      visibleBooks: shouldSlice
+        ? products.slice(offset, offset + ADMIN_PAGE_SIZE)
+        : products,
+      total: productTotal,
+    };
+  }, [activeQuery.data, offset, searchTerm, selectedCategoryId, sortmethod]);
 
 
   useEffect(()=>{
@@ -130,162 +113,181 @@ export default function BookManagement() {
     setSortMethod("");
   },[selectedCategoryId])
 
-  const handleDelete = (id: number) => {
-    if (!confirm("Are you sure you want to delete this book?")) return;
-    axios
-      .delete(`${API.DELETE_PRODUCT}/${id}`, { withCredentials: true })
-      .then(() => fetchPaginatedBooks())
-      .catch(() => alert("Delete failed"));
+  useEffect(() => {
+    setBooks(visibleBooks);
+  }, [visibleBooks]);
+
+  const totalPages = Math.max(1, Math.ceil(total / ADMIN_PAGE_SIZE));
+  const loading = activeQuery.isLoading || activeQuery.isFetching;
+  const getBookCategoryNames = (book: Book) => {
+    if (book.categories?.length) return book.categories.map((category) => category.name);
+    const categoryIds = book.category_ids?.length ? book.category_ids : [book.category_id];
+    return categoryIds.map((id) => categories[id]).filter(Boolean);
   };
 
-  const totalPages = Math.ceil(total / limit);
-
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Book Management</h2>
+    <div>
+      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-stone-950">Inventory</h2>
+          <p className="mt-1 text-sm text-stone-500">
+            Review catalogue stock, pricing, and publishing data. Open a book to manage its details.
+          </p>
+        </div>
         <button
-          className="bg-primary text-white px-4 py-2 rounded hover:bg-orange-700"
-          onClick={() => setShowModal(true)}
+          type="button"
+          className="btn-primary w-fit cursor-pointer"
+          onClick={() => setShowAddBookModal(true)}
         >
-          + Add Book
+          <FiPlus size={16} />
+          Add Book
         </button>
       </div>
 
-      <div className="flex gap-4 mb-4">
-        <input
-          type="text"
+      <div className="surface mb-5 grid gap-3 p-4 lg:grid-cols-[1fr_220px_220px]">
+        <SearchBar
           placeholder="Search by title..."
           value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
+          onChange={(value) => {
+            setSearchTerm(value);
             setThispage(1);
           }}
-          className="px-3 py-2 border rounded border-gray-300 "
         />
-        <select
+        <DropdownSelect
+          label="All Categories"
           value={selectedCategoryId}
-          onChange={(e) => {
-            setSelectedCategoryId(e.target.value);
+          onChange={(value) => {
+            setSelectedCategoryId(value);
             setThispage(1); 
           }}
-          className="px-1 py-2 border rounded border-gray-300 text-gray-500"
-        >
-          <option value="" className="">
-            All Categories
-          </option>
-          {Object.entries(categories).map(([id, name]) => (
-            <option key={id} value={id}>
-              {name}
-            </option>
-          ))}
-        </select>
+          options={[
+            { label: "All Categories", value: "" },
+            ...Object.entries(categories).map(([id, name]) => ({
+              label: name,
+              value: id,
+            })),
+          ]}
+        />
 
-        <select
+        <DropdownSelect
+          label="Sort by"
           value={sortmethod}
-          onChange={(e) => {
-            const value = e.target.value;
-            setSortMethod(value);
-          }}
-          className="px-4 py-2 border border-gray-300 rounded shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <option value="">Sort by</option>
-          <option value="price-asc">Price: Low to High</option>
-          <option value="price-desc">Price: High to Low</option>
-          <option value="stock-asc">Stock: Low to High</option>
-          <option value="stock-desc">Stock: High to Low</option>
-          <option value="created_at-asc">Date: Oldest First</option>
-          <option value="created_at-desc">Date: Newest First</option>
-        </select>
+          onChange={setSortMethod}
+          options={[
+            { label: "Sort by", value: "" },
+            { label: "Price: Low to High", value: "price-asc" },
+            { label: "Price: High to Low", value: "price-desc" },
+            { label: "Stock: Low to High", value: "stock-asc" },
+            { label: "Stock: High to Low", value: "stock-desc" },
+            { label: "Date: Oldest First", value: "created_at-asc" },
+            { label: "Date: Newest First", value: "created_at-desc" },
+          ]}
+        />
       </div>
 
       {loading ? (
         <LoadingSpinner />
       ) : books.length === 0 ? (
-        <p>No books found.</p>
+        <div className="surface py-12 text-center text-stone-500">No books found.</div>
       ) : (
         <>
-          <table className="w-full table-auto border-collapse text-sm">
-            <thead>
-              <tr className="bg-orange-100 text-left">
-                <th className="border px-3 py-2">ID</th>
-                <th className="border px-3 py-2">Image</th>
-                <th className="border px-3 py-2">Title</th>
-                <th className="border px-3 py-2">Description</th>
-                <th className="border px-3 py-2">Price</th>
-                <th className="border px-3 py-2">Stock</th>
-                <th className="border px-3 py-2">Category</th>
-                <th className="border px-3 py-2">Added date</th>
-                <th className="border px-3 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          <div className="bookmart-table overflow-x-auto sm:rounded-lg">
+          <Table hoverable>
+            <TableHead>
+              <TableRow>
+                <TableHeadCell>ID</TableHeadCell>
+                <TableHeadCell>Image</TableHeadCell>
+                <TableHeadCell>Title</TableHeadCell>
+                <TableHeadCell>Author</TableHeadCell>
+                <TableHeadCell>Publisher</TableHeadCell>
+                <TableHeadCell>Language</TableHeadCell>
+                <TableHeadCell>Price</TableHeadCell>
+                <TableHeadCell>Stock</TableHeadCell>
+                <TableHeadCell>Categories</TableHeadCell>
+                <TableHeadCell>Added date</TableHeadCell>
+                <TableHeadCell>Action</TableHeadCell>
+              </TableRow>
+            </TableHead>
+            <TableBody className="divide-y">
               {books.map((book) => {
-                const createdDate = new Date(book.created_at).toLocaleString(); // Format for display
+                const createdDate = formatDisplayDate(book.created_at);
                 return (
-                  <tr key={book.id} className="hover:bg-orange-50">
-                    <td className="border px-3 py-2">{book.id}</td>
-                    <td className="border px-3 py-2">
+                  <TableRow
+                    key={book.id}
+                    className="cursor-pointer bg-white"
+                    onClick={() => navigate(`/admin/inventory/${book.id}`)}
+                  >
+                    <TableCell>{book.id}</TableCell>
+                    <TableCell>
                       <img
                         src={book.imageUrl}
                         alt={book.title}
-                        className="w-16 h-20 object-cover rounded"
+                        className="h-16 w-16 rounded-lg object-cover"
                       />
-                    </td>
-                    <td className="border px-3 py-2 font-semibold">
+                    </TableCell>
+                    <TableCell className="font-medium text-gray-900">
                       {book.title}
-                    </td>
-                    <td className="border px-3 py-2 max-w-xs">
-                      {book.description}
-                    </td>
-                    <td className="border px-3 py-2">
+                    </TableCell>
+                    <TableCell>{book.author || "Unknown"}</TableCell>
+                    <TableCell>{book.publisher || "Unknown"}</TableCell>
+                    <TableCell>{book.language || "Unknown"}</TableCell>
+                    <TableCell className="font-semibold text-gray-900">
                       ${book.price.toFixed(2)}
-                    </td>
-                    <td className="border px-3 py-2">{book.stock}</td>
-                    <td className="border px-3 py-2">
-                      {categories[book.category_id] || "Unknown"}
-                    </td>
-                    <td className="border px-3 py-2">{createdDate}</td>
-                    <td className="border px-3 py-2">
+                    </TableCell>
+                    <TableCell>
+                      <Badge color={book.stock > 0 ? "warning" : "failure"} className="w-fit">
+                        {book.stock}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex max-w-56 flex-wrap gap-1.5">
+                        {getBookCategoryNames(book).length > 0 ? (
+                          getBookCategoryNames(book).map((name) => (
+                            <Badge key={name} color="warning" className="w-fit">
+                              {name}
+                            </Badge>
+                          ))
+                        ) : (
+                          "Unknown"
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{createdDate}</TableCell>
+                    <TableCell>
                       <button
-                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                        onClick={() => handleDelete(book.id)}
+                        type="button"
+                        className="cursor-pointer font-semibold text-primary transition hover:text-primarydark hover:underline"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          navigate(`/admin/inventory/${book.id}`);
+                        }}
                       >
-                        Delete
+                        View
                       </button>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
-
-          <div className="flex justify-center mt-4 gap-2">
-            <button
-              disabled={thispage === 1}
-              onClick={() => setThispage(thispage - 1)}
-              className="px-3 py-1 border rounded disabled:opacity-50"
-            >
-              Prev
-            </button>
-            <span className="px-4 py-1 text-sm">
-              Page {thispage} of {totalPages}
-            </span>
-            <button
-              disabled={thispage === totalPages}
-              onClick={() => setThispage(thispage + 1)}
-              className="px-3 py-1 border rounded disabled:opacity-50"
-            >
-              Next
-            </button>
+            </TableBody>
+          </Table>
           </div>
+
+          <PaginationControls
+            currentPage={thispage}
+            totalPages={totalPages}
+            onPageChange={setThispage}
+            previousLabel="Prev"
+            className="justify-center gap-2"
+          />
         </>
       )}
 
-      {showModal && (
+      {showAddBookModal && (
         <AddBook
-          onClose={() => setShowModal(false)}
-          onSuccess={fetchPaginatedBooks}
+          onClose={() => setShowAddBookModal(false)}
+          onSuccess={() => {
+            setThispage(1);
+          }}
         />
       )}
     </div>

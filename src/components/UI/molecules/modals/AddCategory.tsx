@@ -1,6 +1,8 @@
 import  { useState } from "react";
-import axios from "axios";
-import API from "../../../../const/api_paths";
+import { FiPlus, FiX } from "react-icons/fi";
+import { useAddCategoryMutation } from "../../../../services/bookmartApi";
+import ConfirmModal from "./ConfirmModal";
+import ModalShell from "./ModalShell";
 
 interface AddCategoryProps {
   onClose: () => void;
@@ -10,61 +12,79 @@ interface AddCategoryProps {
 export default function AddCategory({ onClose, onSuccess }: AddCategoryProps) {
   const [newCategoryName, setNewCategoryName] = useState("");
    const [newCategoryDescription, setNewCategoryDescription] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [addCategory, { isLoading: loading }] = useAddCategoryMutation();
 
-  const handleAdd = () => {
+  const requestAdd = () => {
     if (!newCategoryName.trim()) return alert("Category name cannot be empty");
+    setShowConfirm(true);
+  };
 
-    setLoading(true);
-    axios
-      .post(
-        API.ADD_CATEGORY,
-        { name: newCategoryName, description:newCategoryDescription },
-        { withCredentials: true }
-      )
-      .then(() => {
-        onClose();
-        onSuccess(); 
-      })
-      .catch(() => alert("Failed to add category"))
-      .finally(() => setLoading(false));
+  const handleAdd = async () => {
+    try {
+      await addCategory({
+        name: newCategoryName,
+        description: newCategoryDescription,
+      }).unwrap();
+      setShowConfirm(false);
+      onClose();
+      onSuccess(); 
+    } catch {
+      alert("Failed to add category");
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-800/50 backdrop-blur-xs flex justify-center items-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-        <h3 className="text-lg font-semibold mb-4">Add New Category</h3>
+    <>
+      <ModalShell
+        title="Add New Category"
+        onClose={onClose}
+        maxWidth="max-w-sm"
+        footer={
+          <>
+            <button
+              onClick={onClose}
+              className="btn-secondary"
+              disabled={loading}
+            >
+              <FiX size={16} />
+              Cancel
+            </button>
+            <button
+              onClick={requestAdd}
+              className="btn-primary"
+              disabled={loading}
+            >
+              <FiPlus size={16} />
+              {loading ? "Adding..." : "Add"}
+            </button>
+          </>
+        }
+      >
         <input
           type="text"
           value={newCategoryName}
           onChange={(e) => setNewCategoryName(e.target.value)}
           placeholder="Category Name"
-          className="w-full px-3 py-2 border rounded mb-4"
+          className="field w-full"
         />
         <input
           type="text"
           value={newCategoryDescription}
           onChange={(e) => setNewCategoryDescription(e.target.value)}
           placeholder="Category Description"
-          className="w-full px-3 py-2 border rounded mb-4"
+          className="field w-full"
         />
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
-            disabled={loading}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleAdd}
-            className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700"
-            disabled={loading}
-          >
-            {loading ? "Adding..." : "Add"}
-          </button>
-        </div>
-      </div>
-    </div>
+      </ModalShell>
+
+      <ConfirmModal
+        isOpen={showConfirm}
+        title="Add category?"
+        message={`Create "${newCategoryName}" as a new category?`}
+        confirmText="Add"
+        onConfirm={handleAdd}
+        onCancel={() => setShowConfirm(false)}
+      />
+    </>
   );
 }
